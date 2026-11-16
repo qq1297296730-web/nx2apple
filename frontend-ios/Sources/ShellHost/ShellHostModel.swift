@@ -73,6 +73,8 @@ public struct ShellHostConfig: Sendable {
 /// `GameDetail` values, and acts on `ShellActions`. `ShellUI` stays view-only, every file is read here.
 @MainActor @Observable public final class ShellHostModel {
     public private(set) var details: [GameDetail] = []
+    /// NSP/XCI files placed directly in Documents/ImportedGames via the iOS Files app.
+    public private(set) var importedGameDumps: [String] = []
     public private(set) var entries: [CatalogueEntry] = []
     public private(set) var controllers: [ControllerInfo] = []
     public private(set) var input = ShellInputLog()
@@ -141,6 +143,7 @@ public struct ShellHostConfig: Sendable {
         let importedGamesFolder = (FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
             ?? FileManager.default.temporaryDirectory).appendingPathComponent("ImportedGames", isDirectory: true)
         try? FileManager.default.createDirectory(at: importedGamesFolder, withIntermediateDirectories: true)
+        self.importedGameDumps = Self.scanImportedGameDumps(in: importedGamesFolder)
         self.launcher = launcher
         self.picker = picker
         self.shellSettings = shellSettings
@@ -192,6 +195,7 @@ public struct ShellHostConfig: Sendable {
             MainActor.assumeIsolated {
                 guard let self, !self.launchingGame else { return }
                 self.reload()
+                self.refreshImportedGameDumps()
             }
         }
         #endif
@@ -336,6 +340,31 @@ public struct ShellHostConfig: Sendable {
     /// a change to one game updates it in place.
     public func reload() {
         reload(afterClaim: false)
+    }
+
+    /// Refreshes the list of NSP/XCI files that the user copied through the Files app.
+    public func refreshImportedGameDumps() {
+        let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
+            ?? FileManager.default.temporaryDirectory
+        let folder = documents.appendingPathComponent("ImportedGames", isDirectory: true)
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        importedGameDumps = Self.scanImportedGameDumps(in: folder)
+        if importedGameDumps.isEmpty {
+            notice = hostText("No NSP/XCI files found in ImportedGames.")
+        } else {
+            notice = hostText("Found \\(importedGameDumps.count) NSP/XCI file(s) in ImportedGames. These are stored only; they are not ready to launch.")
+        }
+    }
+
+    private static func scanImportedGameDumps(in folder: URL) -> [String] {
+        guard let urls = try? FileManager.default.contentsOfDirectory(
+            at: folder, includingPropertiesForKeys: [.isRegularFileKey],
+            options: [.skipsHiddenFiles]
+        ) else { return [] }
+        return urls.filter {
+            let ext = $0.pathExtension.lowercased()
+            return ext == "nsp" || ext == "xci"
+        }.map(\\.lastPathComponent).sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
     }
 
     /// Copies an original NSP/XCI dump into the app's private ImportedGames folder.
