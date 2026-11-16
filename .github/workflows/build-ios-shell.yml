@@ -15,7 +15,6 @@ jobs:
     timeout-minutes: 90
     env:
       DEVELOPER_DIR: /Applications/Xcode_27.2.app/Contents/Developer
-      SHELL_DIR: ${{ runner.temp }}/NX2AppleShell
       DM_SHELL_FRAMEWORKS: ""
       DM_ENTITLEMENTS: ""
     steps:
@@ -41,11 +40,15 @@ jobs:
           test -f engine/dm/tools/make_shared_fonts.py
 
       - name: Build empty-library iOS app
+        env:
+          SHELL_DIR: ${{ runner.temp }}/NX2AppleShell
         run: |
           set -euo pipefail
           frontend-ios/Shell/build_shell.sh --build
 
       - name: Package unsigned IPA
+        env:
+          SHELL_DIR: ${{ runner.temp }}/NX2AppleShell
         run: |
           set -euo pipefail
           APP="$SHELL_DIR/dd/Build/Products/Release-iphoneos/DmShell.app"
