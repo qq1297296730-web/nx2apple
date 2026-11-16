@@ -136,6 +136,11 @@ public struct ShellHostConfig: Sendable {
     public init(config: ShellHostConfig, launcher: any GameLauncher = StubGameLauncher(), picker: any FolderPicker = NoFolderPicker(),
                 shellSettings: ShellSettingsStore = .current) {
         self.config = config
+        // Create a stable, user-visible folder in Documents so Files can access game dumps
+        // without relying on the document picker or a security-scoped URL.
+        let importedGamesFolder = (FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
+            ?? FileManager.default.temporaryDirectory).appendingPathComponent("ImportedGames", isDirectory: true)
+        try? FileManager.default.createDirectory(at: importedGamesFolder, withIntermediateDirectories: true)
         self.launcher = launcher
         self.picker = picker
         self.shellSettings = shellSettings
