@@ -60,7 +60,7 @@ public struct ShellHostView: View {
                     }
                     HStack(spacing: 6) {
                         Image(systemName: "folder")
-                        Text("ImportedGames：\\(model.importedGameDumps.count) 个文件")
+                        Text("ImportedGames：\(model.importedGameDumps.count) 个文件")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                         if !model.importedGameDumps.isEmpty {
