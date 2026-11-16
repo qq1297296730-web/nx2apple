@@ -359,9 +359,9 @@ public struct ShellHostConfig: Sendable {
             try FileManager.default.copyItem(at: source, to: destination)
             let values = try destination.resourceValues(forKeys: [.fileSizeKey])
             let size = ByteCountFormatter.string(fromByteCount: Int64(values.fileSize ?? 0), countStyle: .file)
-            notice = hostText("Imported source file: \\(destination.lastPathComponent) (\\(size)). It is stored on this iPhone, but has not been converted and cannot be launched yet.")
+            notice = hostText("Imported source file: \(destination.lastPathComponent) (\(size)). It is stored on this iPhone, but has not been converted and cannot be launched yet.")
         } catch {
-            notice = hostText("Could not import this game file: \\(error.localizedDescription)")
+            notice = hostText("Could not import this game file: \(error.localizedDescription)")
         }
     }
 
