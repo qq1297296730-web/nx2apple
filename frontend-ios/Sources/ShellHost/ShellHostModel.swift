@@ -352,7 +352,7 @@ public struct ShellHostConfig: Sendable {
         if importedGameDumps.isEmpty {
             notice = hostText("No NSP/XCI files found in ImportedGames.")
         } else {
-            notice = hostText("Found \\(importedGameDumps.count) NSP/XCI file(s) in ImportedGames. These are stored only; they are not ready to launch.")
+            notice = hostText("Found \(importedGameDumps.count) NSP/XCI file(s) in ImportedGames. These are stored only; they are not ready to launch.")
         }
     }
 
@@ -364,7 +364,7 @@ public struct ShellHostConfig: Sendable {
         return urls.filter {
             let ext = $0.pathExtension.lowercased()
             return ext == "nsp" || ext == "xci"
-        }.map(\\.lastPathComponent).sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+        }.map(\.lastPathComponent).sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
     }
 
     /// Copies an original NSP/XCI dump into the app's private ImportedGames folder.
