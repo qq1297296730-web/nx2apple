@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 import ShellUI
 
 /// `LibraryView` on a `ShellHostModel`: the real shell screen, plus the read-only log sheet and the notice alert. The
@@ -7,6 +8,7 @@ public struct ShellHostView: View {
     @Bindable private var model: ShellHostModel
     private let initialSelection: String?
     private let initialDetailOpen: Bool
+    @State private var isImportingGameDump = false
 
     public init(model: ShellHostModel, initialSelection: String? = nil, initialDetailOpen: Bool = false) {
         self.model = model
@@ -22,8 +24,18 @@ public struct ShellHostView: View {
                     onDismissSigningWarning: { model.dismissSigningWarning() },
                     canOpenHomeButtonSettings: model.canOpenHomeButtonSettings)
             .safeAreaInset(edge: .top, spacing: 0) {
-                HStack {
+                HStack(spacing: 10) {
                     Spacer()
+                    Button {
+                        isImportingGameDump = true
+                    } label: {
+                        Label("导入 NSP/XCI", systemImage: "doc.badge.plus")
+                            .font(.subheadline.weight(.semibold))
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 9)
+                            .background(.thinMaterial, in: Capsule())
+                    }
+                    .accessibilityIdentifier("library.import-game-dump")
                     Button {
                         model.importGameFramework()
                     } label: {
@@ -38,6 +50,14 @@ public struct ShellHostView: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 7)
                 .background(ShellPalette.background)
+            }
+            .fileImporter(isPresented: $isImportingGameDump, allowedContentTypes: [.data], allowsMultipleSelection: false) { result in
+                switch result {
+                case .success(let urls):
+                    if let url = urls.first { model.importGameDump(from: url) }
+                case .failure(let error):
+                    model.notice = error.localizedDescription
+                }
             }
             .disabled(model.launchingGame)
             .overlay {
