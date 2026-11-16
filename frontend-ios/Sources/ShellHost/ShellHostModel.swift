@@ -333,6 +333,60 @@ public struct ShellHostConfig: Sendable {
         reload(afterClaim: false)
     }
 
+    /// Imports a game framework that was already built for this shell by the NX2Apple desktop launcher.
+    /// The original game dump is never read or transformed on the phone.
+    public func importGameFramework() {
+        Task { await importGameFrameworkNow() }
+    }
+
+    private func importGameFrameworkNow() async {
+        guard let source = await pickedFolder() else { return }
+        let hasScope = source.startAccessingSecurityScopedResource()
+        defer { if hasScope { source.stopAccessingSecurityScopedResource() } }
+
+        guard source.pathExtension == "framework" else {
+            notice = hostText("Choose a built DmGame.framework folder.")
+            return
+        }
+        let candidate = GameCatalogue.readFramework(at: source)
+        guard candidate.problem == nil, let manifest = candidate.manifest else {
+            notice = candidate.problem?.detail ?? hostText("This folder is not a valid built game framework.")
+            return
+        }
+        guard let footprint = GameCatalogue.frameworkFootprint(at: source), footprint.files > 0 else {
+            notice = hostText("The game framework is incomplete or contains unsupported files.")
+            return
+        }
+        guard let hotRoot = config.hotFrameworksRoot else {
+            notice = hostText("This app does not support importing game frameworks.")
+            return
+        }
+
+        let fm = FileManager.default
+        let staging = hotRoot.appendingPathComponent(
+            HotFrameworkReady.stagingPrefix + manifest.titleID.uppercased() + "-" + UUID().uuidString,
+            isDirectory: true
+        )
+        do {
+            try fm.createDirectory(at: hotRoot, withIntermediateDirectories: true)
+            try fm.createDirectory(at: staging, withIntermediateDirectories: true)
+            let stagedFramework = staging.appendingPathComponent(manifest.framework, isDirectory: true)
+            try fm.copyItem(at: source, to: stagedFramework)
+            guard let copied = GameCatalogue.frameworkFootprint(at: stagedFramework),
+                  copied.files == footprint.files, copied.bytes == footprint.bytes else {
+                throw CocoaError(.fileReadCorruptFile)
+            }
+            let ready = HotFrameworkReady(titleID: manifest.titleID, files: copied.files, bytes: copied.bytes)
+            let data = try JSONEncoder().encode(ready)
+            try data.write(to: staging.appendingPathComponent(HotFrameworkReady.fileName), options: .atomic)
+            reload()
+            notice = hostText("Added game framework: \(manifest.name)")
+        } catch {
+            try? fm.removeItem(at: staging)
+            notice = hostText("Could not import this game framework: \(error.localizedDescription)")
+        }
+    }
+
     private func reload(afterClaim: Bool) {
         forgetCheckedRomfsImages()
         resolvedProfiles.removeAll()
