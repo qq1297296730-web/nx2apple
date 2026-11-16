@@ -65,6 +65,11 @@ public struct ShellHostView: View {
                             .foregroundStyle(.secondary)
                     }
                     .padding(.horizontal, 16)
+                    Text("将 NSP/XCI 文件放入“文件”App 中的 ImportedGames 文件夹，然后点“刷新游戏文件”。当前版本仅支持存储和管理文件，暂不支持直接启动 NSP/XCI。")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, 16)
                     if !model.importedGameDumps.isEmpty {
                         ScrollView {
                             VStack(spacing: 0) {
