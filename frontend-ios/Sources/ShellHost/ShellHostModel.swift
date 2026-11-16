@@ -69,12 +69,21 @@ public struct ShellHostConfig: Sendable {
     }
 }
 
+/// A stored NSP/XCI source file shown in the shell's imported-files list.
+public struct ImportedGameDump: Identifiable, Equatable {
+    public let id: String
+    public let name: String
+    public let fileType: String
+    public let sizeLabel: String
+    fileprivate let fileURL: URL
+}
+
 /// The host behind the views: turns the catalogue, the saved settings, the picked folders and the controllers into
 /// `GameDetail` values, and acts on `ShellActions`. `ShellUI` stays view-only, every file is read here.
 @MainActor @Observable public final class ShellHostModel {
     public private(set) var details: [GameDetail] = []
     /// NSP/XCI files placed directly in Documents/ImportedGames via the iOS Files app.
-    public private(set) var importedGameDumps: [String] = []
+    public private(set) var importedGameDumps: [ImportedGameDump] = []
     public private(set) var entries: [CatalogueEntry] = []
     public private(set) var controllers: [ControllerInfo] = []
     public private(set) var input = ShellInputLog()
@@ -356,15 +365,31 @@ public struct ShellHostConfig: Sendable {
         }
     }
 
-    private static func scanImportedGameDumps(in folder: URL) -> [String] {
+    /// Deletes one stored source file from the app's ImportedGames folder.
+    public func deleteImportedGameDump(_ dump: ImportedGameDump) {
+        do {
+            try FileManager.default.removeItem(at: dump.fileURL)
+            refreshImportedGameDumps()
+            notice = hostText("Deleted \(dump.name).")
+        } catch {
+            notice = hostText("Could not delete \(dump.name): \(error.localizedDescription)")
+        }
+    }
+
+    private static func scanImportedGameDumps(in folder: URL) -> [ImportedGameDump] {
         guard let urls = try? FileManager.default.contentsOfDirectory(
-            at: folder, includingPropertiesForKeys: [.isRegularFileKey],
+            at: folder, includingPropertiesForKeys: [.isRegularFileKey, .fileSizeKey],
             options: [.skipsHiddenFiles]
         ) else { return [] }
-        return urls.filter {
-            let ext = $0.pathExtension.lowercased()
-            return ext == "nsp" || ext == "xci"
-        }.map(\.lastPathComponent).sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+        return urls.compactMap { url in
+            let ext = url.pathExtension.lowercased()
+            guard (ext == "nsp" || ext == "xci"),
+                  let values = try? url.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey]),
+                  values.isRegularFile == true else { return nil }
+            let size = ByteCountFormatter.string(fromByteCount: Int64(values.fileSize ?? 0), countStyle: .file)
+            return ImportedGameDump(id: url.lastPathComponent, name: url.lastPathComponent,
+                                    fileType: ext.uppercased(), sizeLabel: size, fileURL: url)
+        }.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 
     /// Copies an original NSP/XCI dump into the app's private ImportedGames folder.
