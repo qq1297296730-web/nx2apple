@@ -61,16 +61,43 @@ public struct ShellHostView: View {
                     HStack(spacing: 6) {
                         Image(systemName: "folder")
                         Text("ImportedGames：\(model.importedGameDumps.count) 个文件")
-                            .font(.caption)
+                            .font(.caption.weight(.semibold))
                             .foregroundStyle(.secondary)
-                        if !model.importedGameDumps.isEmpty {
-                            Text(model.importedGameDumps.prefix(2).joined(separator: "、"))
-                                .font(.caption2)
-                                .lineLimit(1)
-                                .foregroundStyle(.secondary)
-                        }
                     }
                     .padding(.horizontal, 16)
+                    if !model.importedGameDumps.isEmpty {
+                        ScrollView {
+                            VStack(spacing: 0) {
+                                ForEach(model.importedGameDumps) { dump in
+                                    HStack(spacing: 10) {
+                                        Image(systemName: dump.fileType == "XCI" ? "externaldrive" : "doc.zipper")
+                                            .foregroundStyle(.secondary)
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(dump.name)
+                                                .font(.caption)
+                                                .lineLimit(1)
+                                                .textSelection(.enabled)
+                                            Text("\(dump.fileType) · \(dump.sizeLabel)")
+                                                .font(.caption2)
+                                                .foregroundStyle(.secondary)
+                                        }
+                                        Spacer(minLength: 4)
+                                        Button(role: .destructive) {
+                                            model.deleteImportedGameDump(dump)
+                                        } label: {
+                                            Image(systemName: "trash")
+                                                .font(.caption.weight(.semibold))
+                                                .padding(8)
+                                        }
+                                        .accessibilityLabel("删除 \(dump.name)")
+                                    }
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 5)
+                                }
+                            }
+                        }
+                        .frame(maxHeight: 132)
+                    }
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 7)
