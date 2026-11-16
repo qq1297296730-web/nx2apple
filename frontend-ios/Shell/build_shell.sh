@@ -8,7 +8,7 @@
 #   --build          also builds it for iOS, unsigned (CODE_SIGNING_ALLOWED=NO), to check it compiles and links (CI, off a device)
 # Environment:
 #   SHELL_DIR            the shell's project folder (required, outside frontend-ios: Gen/, the project, derived data)
-#   DM_SHELL_FRAMEWORKS  the games' framework folders, one per line (required, at least one, <folder>/DmGame<title ID>.framework)
+#   DM_SHELL_FRAMEWORKS  optional game framework folders, one per line (<folder>/DmGame<title ID>.framework)
 #   DM_BUNDLE_ID         the shell's bundle ID (default org.nxnative.shell). Keep it for the life of the install: the same ID installed
 #                        over the existing app keeps its Documents (game data, saves) when it is signed again after 7 days
 #   DM_TEAM_ID           the signing team for the prepared project (default 0000000000, a placeholder)
@@ -25,7 +25,6 @@ REPO_ROOT=$(cd "$DEFAULT_PKG/.." && pwd) || exit 1
 t() { echo "[$(date +%T)] $*"; }; die() { t "FAIL: $*"; exit 1; }
 MODE=${1:-}; case "$MODE" in --prepare-xcode|--build) ;; *) die "usage: $0 --prepare-xcode | --build";; esac
 [ -n "${SHELL_DIR:-}" ] || die "SHELL_DIR is not set: the shell's project folder"
-[ -n "${DM_SHELL_FRAMEWORKS:-}" ] || die "DM_SHELL_FRAMEWORKS is not set: the games' framework folders, one per line"
 mkdir -p "$SHELL_DIR" || die "mkdir $SHELL_DIR"; S=$(cd "$SHELL_DIR" && pwd)
 [ -n "${DM_SHELL_PACKAGE:-}" ] || DM_SHELL_PACKAGE=$DEFAULT_PKG
 export DM_SHELL_PACKAGE
@@ -53,8 +52,7 @@ FWLIST=$S/frameworks.txt
 python3 -I - "$FWLIST" <<'PY' || die "the frameworks in DM_SHELL_FRAMEWORKS (above)"
 import json, os, sys
 out = sys.argv[1]
-paths = [p.strip() for p in os.environ['DM_SHELL_FRAMEWORKS'].splitlines() if p.strip()]
-if not paths: sys.exit('[RED] no framework named')
+paths = [p.strip() for p in os.environ.get('DM_SHELL_FRAMEWORKS', '').splitlines() if p.strip()]
 seen, rows = {}, []
 for p in paths:
     p = os.path.abspath(p)
@@ -70,7 +68,8 @@ with open(out, 'w', encoding='utf-8') as f:
     for tid, p, name in rows: f.write(f'{tid}\t{p}\t{name}\n')
 PY
 export GAME=$(head -1 "$FWLIST" | cut -f1)
-t "shell: $DM_SHELL_NAME ($DM_BUNDLE_ID), games: $(cut -f3 "$FWLIST" | paste -sd, -)"
+GAMES=$(cut -f3 "$FWLIST" | paste -sd, -); [ -n "$GAMES" ] || GAMES="(empty library)"
+t "shell: $DM_SHELL_NAME ($DM_BUNDLE_ID), games: $GAMES"
 
 t "generate Gen/ (shared files, the project)"
 rm -f "$S/Sources" "$S/tools"
