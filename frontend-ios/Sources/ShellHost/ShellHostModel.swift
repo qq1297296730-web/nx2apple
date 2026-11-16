@@ -333,6 +333,38 @@ public struct ShellHostConfig: Sendable {
         reload(afterClaim: false)
     }
 
+    /// Copies an original NSP/XCI dump into the app's private ImportedGames folder.
+    /// This stores the source file only; it does not convert it into a runnable game.
+    public func importGameDump(from source: URL) {
+        Task { await importGameDumpNow(from: source) }
+    }
+
+    private func importGameDumpNow(from source: URL) async {
+        let ext = source.pathExtension.lowercased()
+        guard ext == "nsp" || ext == "xci" else {
+            notice = hostText("Choose an NSP or XCI game file.")
+            return
+        }
+        let hasScope = source.startAccessingSecurityScopedResource()
+        defer { if hasScope { source.stopAccessingSecurityScopedResource() } }
+
+        let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
+            ?? FileManager.default.temporaryDirectory
+        let destinationRoot = documents.appendingPathComponent("ImportedGames", isDirectory: true)
+        let safeName = source.deletingPathExtension().lastPathComponent
+            .replacingOccurrences(of: "/", with: "-")
+        let destination = destinationRoot.appendingPathComponent(safeName + "-" + UUID().uuidString + "." + ext)
+        do {
+            try FileManager.default.createDirectory(at: destinationRoot, withIntermediateDirectories: true)
+            try FileManager.default.copyItem(at: source, to: destination)
+            let values = try destination.resourceValues(forKeys: [.fileSizeKey])
+            let size = ByteCountFormatter.string(fromByteCount: Int64(values.fileSize ?? 0), countStyle: .file)
+            notice = hostText("Imported source file: \\(destination.lastPathComponent) (\\(size)). It is stored on this iPhone, but has not been converted and cannot be launched yet.")
+        } catch {
+            notice = hostText("Could not import this game file: \\(error.localizedDescription)")
+        }
+    }
+
     /// Imports a game framework that was already built for this shell by the NX2Apple desktop launcher.
     /// The original game dump is never read or transformed on the phone.
     public func importGameFramework() {
