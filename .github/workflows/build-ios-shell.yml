@@ -1,0 +1,60 @@
+name: Build NX2Apple iOS shell (unsigned IPA)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: xcode-27
+    timeout-minutes: 90
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.2.app/Contents/Developer
+      SHELL_DIR: ${{ runner.temp }}/NX2AppleShell
+      DM_SHELL_FRAMEWORKS: ""
+      DM_ENTITLEMENTS: ""
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: mobile-empty-shell
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.14"
+
+      - name: Install build tools
+        run: |
+          set -euo pipefail
+          brew install xcodegen
+          python -m pip install fonttools
+
+      - name: Fetch and prepare the pinned NX2Apple engine
+        run: |
+          set -euo pipefail
+          python tools/engine.py sync
+          test -f engine/dm/gfx/nvn/dmsh_chain.h
+          test -f engine/dm/tools/make_shared_fonts.py
+
+      - name: Build empty-library iOS app
+        run: |
+          set -euo pipefail
+          frontend-ios/Shell/build_shell.sh --build
+
+      - name: Package unsigned IPA
+        run: |
+          set -euo pipefail
+          APP="$SHELL_DIR/dd/Build/Products/Release-iphoneos/DmShell.app"
+          test -d "$APP"
+          mkdir -p "$RUNNER_TEMP/ipa/Payload"
+          ditto "$APP" "$RUNNER_TEMP/ipa/Payload/DmShell.app"
+          (cd "$RUNNER_TEMP/ipa" && zip -qry "$RUNNER_TEMP/NX2Apple-unsigned.ipa" Payload)
+          ls -lh "$RUNNER_TEMP/NX2Apple-unsigned.ipa"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: NX2Apple-unsigned-IPA
+          path: ${{ runner.temp }}/NX2Apple-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 7
