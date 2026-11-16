@@ -21,6 +21,24 @@ public struct ShellHostView: View {
                     signingWarning: model.signingWarning,
                     onDismissSigningWarning: { model.dismissSigningWarning() },
                     canOpenHomeButtonSettings: model.canOpenHomeButtonSettings)
+            .safeAreaInset(edge: .top, spacing: 0) {
+                HStack {
+                    Spacer()
+                    Button {
+                        model.importGameFramework()
+                    } label: {
+                        Label("导入已构建游戏", systemImage: "square.and.arrow.down")
+                            .font(.subheadline.weight(.semibold))
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 9)
+                            .background(.thinMaterial, in: Capsule())
+                    }
+                    .accessibilityIdentifier("library.import-built-game")
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 7)
+                .background(ShellPalette.background)
+            }
             .disabled(model.launchingGame)
             .overlay {
                 if model.launchingGame {
