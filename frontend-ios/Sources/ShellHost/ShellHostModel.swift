@@ -359,9 +359,9 @@ public struct ImportedGameDump: Identifiable, Equatable {
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         importedGameDumps = Self.scanImportedGameDumps(in: folder)
         if importedGameDumps.isEmpty {
-            notice = hostText("No NSP/XCI files found in ImportedGames.")
+            notice = "未在 ImportedGames 文件夹中找到 NSP/XCI 文件。"
         } else {
-            notice = hostText("Found \(importedGameDumps.count) NSP/XCI file(s) in ImportedGames. These are stored only; they are not ready to launch.")
+            notice = "已在 ImportedGames 文件夹中发现 \(importedGameDumps.count) 个 NSP/XCI 文件。这些文件目前仅供存储，暂不支持启动。"
         }
     }
 
