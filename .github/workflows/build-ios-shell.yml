@@ -2,6 +2,9 @@ name: Build NX2Apple iOS shell (unsigned IPA)
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - mobile-empty-shell
 
 permissions:
   contents: read
