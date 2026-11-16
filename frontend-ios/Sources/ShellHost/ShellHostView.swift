@@ -24,28 +24,53 @@ public struct ShellHostView: View {
                     onDismissSigningWarning: { model.dismissSigningWarning() },
                     canOpenHomeButtonSettings: model.canOpenHomeButtonSettings)
             .safeAreaInset(edge: .top, spacing: 0) {
-                HStack(spacing: 10) {
-                    Spacer()
-                    Button {
-                        isImportingGameDump = true
-                    } label: {
-                        Label("导入 NSP/XCI", systemImage: "doc.badge.plus")
-                            .font(.subheadline.weight(.semibold))
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 9)
-                            .background(.thinMaterial, in: Capsule())
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 10) {
+                        Spacer()
+                        Button {
+                            model.refreshImportedGameDumps()
+                        } label: {
+                            Label("刷新游戏文件", systemImage: "arrow.clockwise")
+                                .font(.subheadline.weight(.semibold))
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 9)
+                                .background(.thinMaterial, in: Capsule())
+                        }
+                        .accessibilityIdentifier("library.refresh-imported-games")
+                        Button {
+                            isImportingGameDump = true
+                        } label: {
+                            Label("导入 NSP/XCI", systemImage: "doc.badge.plus")
+                                .font(.subheadline.weight(.semibold))
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 9)
+                                .background(.thinMaterial, in: Capsule())
+                        }
+                        .accessibilityIdentifier("library.import-game-dump")
+                        Button {
+                            model.importGameFramework()
+                        } label: {
+                            Label("导入已构建游戏", systemImage: "square.and.arrow.down")
+                                .font(.subheadline.weight(.semibold))
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 9)
+                                .background(.thinMaterial, in: Capsule())
+                        }
+                        .accessibilityIdentifier("library.import-built-game")
                     }
-                    .accessibilityIdentifier("library.import-game-dump")
-                    Button {
-                        model.importGameFramework()
-                    } label: {
-                        Label("导入已构建游戏", systemImage: "square.and.arrow.down")
-                            .font(.subheadline.weight(.semibold))
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 9)
-                            .background(.thinMaterial, in: Capsule())
+                    HStack(spacing: 6) {
+                        Image(systemName: "folder")
+                        Text("ImportedGames：\\(model.importedGameDumps.count) 个文件")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        if !model.importedGameDumps.isEmpty {
+                            Text(model.importedGameDumps.prefix(2).joined(separator: "、"))
+                                .font(.caption2)
+                                .lineLimit(1)
+                                .foregroundStyle(.secondary)
+                        }
                     }
-                    .accessibilityIdentifier("library.import-built-game")
+                    .padding(.horizontal, 16)
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 7)
